@@ -1,0 +1,37 @@
+name: cc-epub convert
+
+# 用法：把 .epub 放到 input/ 目录 → push → 自动转换 → 成品在 Actions 产物里下载
+on:
+  push:
+    paths:
+      - "input/**.epub"
+  workflow_dispatch:
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install opencc
+        run: pip install -r requirements.txt
+
+      - name: Convert all EPUBs in input/
+        run: |
+          mkdir -p output
+          for f in input/*.epub; do
+            [ -e "$f" ] || continue
+            name=$(basename "$f" .epub)
+            python convert.py "$f" -o "output/${name}-cc.epub" --config t2s
+          done
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc-epub-output
+          path: output/*.epub
