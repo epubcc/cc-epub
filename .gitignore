@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 构建 / 打包
+build/
+dist/
+*.egg-info/
+
+# 测试 / 临时产物
+*.bak.epub
+test_out/
+tmp/
+tmp_v*/
+
+# 系统
+.DS_Store
+
+# 本仓库自身的 .git（若把工具复制到子目录，避免嵌套仓库被误纳入）
+.git/
