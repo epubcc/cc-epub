@@ -1,5 +1,0 @@
-# cc-epub Python 依赖
-# 核心：opencc（Python 绑定，底层调用系统 opencc 词典）
-# 可选（强烈推荐）：chardet（自动检测 EPUB 文件编码，避免 GBK/Big5 文件解码失败）
-opencc>=0.1.9
-chardet>=5.0
