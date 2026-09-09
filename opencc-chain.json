@@ -1,0 +1,23 @@
+{
+    "name": "cc-epub 繁简转换链",
+    "version": "1.0",
+    "description": "港台繁体 → 大陆简体，优先 tw2s，回退 t2s",
+    "chain": [
+        "tw2s",
+        "t2s"
+    ],
+    "fallback": "t2s.json",
+    "notes": [
+        "Termux (F-Droid) 仓库中的 opencc 包提供以下配置文件：",
+        "  - /usr/share/opencc/t2s.json  (通用繁体 → 简体)",
+        "  - /usr/share/opencc/s2t.json  (简体 → 繁体)",
+        "  - /usr/share/opencc/tw2s.json (台湾繁体 → 简体)",
+        "  - /usr/share/opencc/s2tw.json (简体 → 台湾繁体)",
+        "  - /usr/share/opencc/hk2s.json (香港繁体 → 简体, 若存在)",
+        "  - /usr/share/opencc/s2hk.json (简体 → 香港繁体)",
+        "",
+        "本工具自动检测：",
+        "  - 文件名/内容含 'hk'/'hongkong' → 使用 hk2s.json",
+        "  - 其他 → 使用 t2s.json（兼容台湾/香港通用）"
+    ]
+}

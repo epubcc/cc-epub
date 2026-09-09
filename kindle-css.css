@@ -1,0 +1,104 @@
+/* ============================================================
+   Kindle Paperwhite SE (12th Gen) 兼容 CSS
+   追加到 EPUB 主 CSS 末尾，确保渲染稳定
+   ============================================================ */
+
+/* --- 全局重置：统一字体为 Kindle 自带 --- */
+* {
+    font-family: serif !important;
+}
+
+/* --- 强制横排 --- */
+body, html, div, p, h1, h2, h3, h4, h5, h6,
+section, article, header, footer, nav, aside,
+span, blockquote, pre, table, ul, ol, li {
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    direction: ltr !important;
+}
+
+/* --- 正文排版优化（Kindle 电子墨水屏） --- */
+body {
+    font-size: 1em;
+    line-height: 1.6;
+    text-align: justify;
+    margin: 0;
+    padding: 0 0.5em;
+    color: #000;
+    background: transparent;
+}
+
+/* --- 图片：自适应屏幕，居中 --- */
+img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+    margin: 0.5em auto;
+}
+
+/* --- 段落 --- */
+p {
+    margin: 0.5em 0;
+    text-indent: 2em;
+}
+
+/* 无缩进类（封面、标题等） */
+p.no-indent,
+.cover, .title, .subtitle,
+.frontmatter p,
+body > p:first-child {
+    text-indent: 0 !important;
+}
+
+/* --- 标题 --- */
+h1, h2, h3 {
+    text-align: center;
+    text-indent: 0;
+    margin: 1em 0 0.5em;
+    font-weight: bold;
+}
+h1 { font-size: 1.5em; }
+h2 { font-size: 1.3em; }
+h3 { font-size: 1.1em; }
+
+/* --- 表格 --- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.5em 0;
+}
+th, td {
+    border: 1px solid #999;
+    padding: 0.3em 0.5em;
+}
+
+/* --- 引用 --- */
+blockquote {
+    margin: 0.5em 1em;
+    padding: 0 0.5em;
+    border-left: 3px solid #ccc;
+    color: #333;
+}
+
+/* --- 代码块 --- */
+pre, code {
+    font-family: monospace !important;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* --- 强制横排：覆盖所有 inline style 残留 --- */
+[style*="writing-mode"],
+[style*="vertical"],
+[style*="text-orientation"] {
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+}
+
+/* --- 清除可能存在的竖排残留 --- */
+.vertical,
+.vrl,
+.vlr,
+[class*="vertical"] {
+    writing-mode: horizontal-tb !important;
+}
