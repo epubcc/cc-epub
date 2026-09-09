@@ -1,0 +1,125 @@
+name: check
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache test fixtures
+        uses: actions/cache@v4
+        with:
+          path: test_fixtures
+          key: fixtures-${{ hashFiles('converter.py') }}
+          restore-keys: |
+            fixtures-
+
+      - name: Syntax check
+        run: python -m compileall -q . || exit 1
+
+      - name: Verify project structure
+        run: |
+          test -f converter.py
+          test -f install.sh
+          test -f test_converter.py
+
+      - name: Run unit tests
+        run: python test_converter.py
+
+      - name: Run audit suite
+        run: |
+          if [ -f audit.py ]; then python audit.py; fi
+
+      - name: End-to-end conversion (real EPUB)
+        run: |
+          set -e
+          WORK=$(mktemp -d)
+          mkdir -p "$WORK/Download"
+          # 显式锁定输出目录，与 converter.get_output_dir() 的 Download/E-book 对齐
+          export HOME="$WORK"
+          export EBOOK_OUT="$WORK/Download/E-book"
+          mkdir -p "$EBOOK_OUT"
+          WORK="$WORK" python - <<'PY'
+          import zipfile, os
+          work = os.environ["WORK"]
+          src = os.path.join(work, "三体.epub")
+          files = {
+              "mimetype": b"application/epub+zip",
+              "META-INF/container.xml": b"""<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>""",
+              "content.opf": b"""<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="id"><metadata><dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">Test</dc:title></metadata><manifest><item id="c" href="content.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="c"/></spine></package>""",
+              "content.xhtml": "<!DOCTYPE html><html><head><style>@page{writing-mode:vertical-rl}</style></head><body><p>這是一個測試，矽二極體壞了</p></body></html>".encode("utf-8"),
+          }
+          with zipfile.ZipFile(src, "w", zipfile.ZIP_STORED) as z:
+              z.writestr("mimetype", files["mimetype"], zipfile.ZIP_STORED)
+              for n, d in files.items():
+                  if n == "mimetype":
+                      continue
+                  z.writestr(n, d)
+          PY
+
+          HOME="$WORK" XDG_DOWNLOAD_DIR="$WORK/Download" \
+            python converter.py "$WORK/三体.epub"
+
+          OUT=$(ls -1 "$EBOOK_OUT"/*.epub 2>/dev/null || ls -1 "$WORK"/Download/E-book/*.epub 2>/dev/null || ls -1 "$WORK"/E-book/*.epub 2>/dev/null || true)
+          if [ -z "$OUT" ]; then
+            echo "ERROR: no output epub"; ls -R "$WORK"; exit 1
+          fi
+          echo "$OUT" > /tmp/out_epub.txt
+
+      - name: Verify real output
+        run: |
+          python - <<'PY'
+          import zipfile, os
+          out = open("/tmp/out_epub.txt").read().strip()
+          with zipfile.ZipFile(out) as z:
+              assert z.namelist()[0] == "mimetype"
+              xhtml = z.read("content.xhtml").decode("utf-8", "replace")
+          assert "硅二极管" in xhtml
+          assert "horizontal-tb" in xhtml
+          assert "vertical-rl" not in xhtml
+          assert "這" not in xhtml and "个" in xhtml
+          print("E2E OK:", out)
+          PY
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: check-artifacts-${{ matrix.python-version }}
+          path: |
+            run_check_result.json
+            check_result.json
+            final_report.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Require green verdict
+        run: |
+          rc=0
+          for f in run_check_result.json check_result.json final_report.json; do
+            [ -f "$f" ] || continue
+            python - "$f" <<'PY' || rc=$?
+          import json, sys
+          d = json.load(open(sys.argv[1]))
+          v = d.get("verdict") or (d.get("summary") or {}).get("verdict") or ""
+          sys.exit(0 if str(v).upper() in ("PASS","OK","GREEN","ALL GREEN") else 1)
+          PY
+          done
+          exit $rc
